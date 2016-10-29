@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">Catalogo</string>
+    <string name="sort_list">Ordenar lista</string>
+    <string name="search_name">Nombre</string>
+
+    <string name="network_error">No se puede conectar a internet, por favor revisa tu conexion!</string>
+    <string name="server_error">No se encontro el servidor. Por favor intente mas tarde!.</string>
+    <string name="auth_failure_error">No se puede conectar a internet, por favor revisa tu conexion!</string>
+    <string name="parsing_error">Error de parseo. Intente de nuevo mas tarde</string>
+    <string name="time_out_error">Time out. Por favor verifique su conexion</string>
+
+    <string name="empty_message">No hay productos para mostrar</string>
+
+
+</resources>
