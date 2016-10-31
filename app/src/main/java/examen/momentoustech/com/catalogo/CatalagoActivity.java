@@ -33,6 +33,9 @@ import com.android.volley.VolleyError;
 import com.google.gson.reflect.TypeToken;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 
 import examen.momentoustech.com.catalogo.manager.DatabaseManager;
 import examen.momentoustech.com.catalogo.manager.RequestManager;
@@ -46,6 +49,8 @@ import examen.momentoustech.com.catalogo.views.adapters.ProductoAdapter;
 public class CatalagoActivity extends AppCompatActivity {
 
     private static final String TAG = "ProductCatalogo";
+    private static final int PAGING_LIMIT = 11;
+
     private ArrayList<Producto> mProductList = new ArrayList<>();
     private RecyclerView mRecyclerView;
     private ProductoAdapter mAdapter;
@@ -56,6 +61,7 @@ public class CatalagoActivity extends AppCompatActivity {
     private boolean isSortList = Boolean.FALSE;
     private EndlessRecyclerViewScrollListener scrollListener;
     private int mOffSet = 1;
+    private int mOffsetQuery = 0;
 
     private BroadcastReceiver mBroacastReceiver = new BroadcastReceiver() {
         @Override
@@ -64,9 +70,7 @@ public class CatalagoActivity extends AppCompatActivity {
             if (intent.getAction().equals(SyncService.NEW_DATA)) {
 
                 if (!mSearchMenuItem.isActionViewExpanded()) {
-                    mProductList.clear();
-                    mProductList.addAll(DatabaseManager.getInstance().getProductos(isSortList));
-                    mAdapter.notifyDataSetChanged();
+                    refreshData();
                     showView();
                 }
             }
@@ -124,7 +128,7 @@ public class CatalagoActivity extends AppCompatActivity {
             //Solo realizo la busqueda en la BD local, lo mejor seria tener una api para realizar
             //la busqueda en el servidor en toda la bd.
             mProductList.clear();
-            mProductList.addAll(DatabaseManager.getInstance().searchProductByName(query));
+            mProductList.addAll(DatabaseManager.getInstance().searchProductByName(query, PAGING_LIMIT));
             mAdapter.notifyDataSetChanged();
             showView();
 
@@ -137,7 +141,6 @@ public class CatalagoActivity extends AppCompatActivity {
         unregisterReceiver(mBroacastReceiver);
         super.onDestroy();
     }
-
 
 
     @Override
@@ -165,9 +168,9 @@ public class CatalagoActivity extends AppCompatActivity {
                     @Override
                     public boolean onMenuItemActionCollapse(MenuItem menuItem) {
                         mProductList.clear();
-                        mProductList.addAll(DatabaseManager.getInstance().getProductos(isSortList));
-                        mAdapter.notifyDataSetChanged();
+                        mOffsetQuery = 0;
                         mRecyclerView.addOnScrollListener(scrollListener);
+                        refreshData();
                         scrollListener.resetState();
                         showView();
                         return true;
@@ -203,10 +206,32 @@ public class CatalagoActivity extends AppCompatActivity {
     }
 
     private void sortProducts() {
-        mProductList.clear();
-        mProductList.addAll(DatabaseManager.getInstance().getProductos(isSortList));
-        mAdapter.notifyDataSetChanged();
-        showView();
+        if (mSearchMenuItem.isActionViewExpanded()) {
+            Collections.sort(mProductList, new Comparator<Producto>() {
+                @Override
+                public int compare(Producto producto, Producto t1) {
+                    return producto.getName().compareTo(t1.getName());
+                }
+            });
+            mAdapter.notifyDataSetChanged();
+
+        } else {
+            mOffsetQuery = 0;
+            mProductList.clear();
+            refreshData();
+            showView();
+        }
+    }
+
+    private void refreshData() {
+        List<Producto> listTemp = DatabaseManager.getInstance().getProductos(isSortList, PAGING_LIMIT, mOffsetQuery);
+        if (!listTemp.isEmpty()) {
+            mProductList.addAll(listTemp);
+            mAdapter.notifyDataSetChanged();
+            scrollListener.resetState();
+            mOffsetQuery++;
+        }
+
     }
 
     private void requestProduct() {
@@ -232,7 +257,8 @@ public class CatalagoActivity extends AppCompatActivity {
             RequestManager.getInstance().addToRequestQueue(req);
 
         } else {
-            Log.d(TAG, "No mas datos para mostrar");
+            refreshData();
+
         }
 
 
@@ -247,11 +273,8 @@ public class CatalagoActivity extends AppCompatActivity {
                 ArrayList<Producto> productos = response;
                 DatabaseManager.getInstance().saveProduct(productos);
 
-                mProductList.clear();
-                mProductList.addAll(DatabaseManager.getInstance().getProductos(isSortList));
-                mAdapter.notifyDataSetChanged();
+                refreshData();
                 mProgressBar.setVisibility(View.GONE);
-                scrollListener.resetState();
                 showView();
 
             }

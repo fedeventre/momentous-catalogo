@@ -76,13 +76,14 @@ public class DatabaseManager {
         return producto;
     }
 
-    public List<Producto> searchProductByName(String name) {
+    public List<Producto> searchProductByName(String name, int limit) {
         List<Producto> productosList = new ArrayList<>();
         String selection = ProductEntry.COLUMN_NAME_NAME + " LIKE ?";
         String[] selectionArgs = {"%"+name+"%"};
+        String limitStr = String.format("%s",limit);
 
         Cursor cursor = mDatabase.query(ProductEntry.TABLE_NAME, ProductItemContract.SELECT_ALL, selection,
-                selectionArgs, null, null, null);
+                selectionArgs, null, null, null,limitStr);
 
         if (cursor != null) {
             while (cursor.moveToNext()) {
@@ -95,12 +96,13 @@ public class DatabaseManager {
         return productosList;
     }
 
-    public List<Producto> getProductos(boolean asc, int limit,) {
+    public List<Producto> getProductos(boolean asc, int limit, int offset) {
         List<Producto> productosList = new ArrayList<>();
         String orderBy = asc ? ProductEntry.COLUMN_NAME_NAME +  " ASC" : null;
+        String limitStr = String.format("%s,%s", limit*offset , limit);
 
         Cursor cursor = mDatabase.query(ProductEntry.TABLE_NAME, ProductItemContract.SELECT_ALL,
-                null, null, null, null, orderBy);
+                null, null, null, null, orderBy,limitStr);
 
         while (cursor.moveToNext()) {
             Producto producto = feedItemFromCursor(cursor);
